@@ -16,6 +16,7 @@
 
 package org.springframework.beans.factory.config;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Properties;
 
@@ -235,4 +236,35 @@ class YamlPropertiesFactoryBeanTests {
 		assertThat(((Map<String, Object>) map.get("spam")).get("foo")).isEqualTo("baz");
 	}
 
+	@Test
+	void loadNestedEscapedYaml() {
+		String yaml = "root:\n" +
+				"  webservices:\n" +
+				"    \"[domain.test:8080]\":\n" +
+				"      - username: me\n" +
+				"        password: mypassword\n";
+		final YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
+		factory.setResources(new ByteArrayResource(yaml.getBytes(StandardCharsets.UTF_8)));
+		final Properties properties = factory.getObject();
+		assertThat(properties.getProperty("root.webservices[[domain.test:8080]][0].username")).isEqualTo("me");
+		assertThat(properties.getProperty("root.webservices[[domain.test:8080]][0].password")).isEqualTo("mypassword");
+	}
+
+	@Test
+	void loadNestedEscapedProperties() throws Exception {
+
+		String yaml = "root:\n" +
+				"  webservices:\n" +
+				"    \"[domain.test:8080]\":\n" +
+				"      - username: me\n" +
+				"        password: mypassword\n";
+		final PropertiesFactoryBean factory = new PropertiesFactoryBean();
+		factory.setLocations(new ClassPathResource("/nested-with-dot.properties", this.getClass()));
+		factory.setSingleton(false);
+		final Properties properties = factory.getObject();
+
+		final YamlPropertiesFactoryBean yamlFactory = new YamlPropertiesFactoryBean();
+		yamlFactory.setResources(new ByteArrayResource(yaml.getBytes(StandardCharsets.UTF_8)));
+		assertThat(properties).isEqualTo(yamlFactory.getObject());
+	}
 }

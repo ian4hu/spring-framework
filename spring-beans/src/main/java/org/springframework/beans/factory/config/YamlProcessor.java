@@ -301,14 +301,18 @@ public abstract class YamlProcessor {
 	 */
 	protected final Map<String, Object> getFlattenedMap(Map<String, Object> source) {
 		Map<String, Object> result = new LinkedHashMap<>();
-		buildFlattenedMap(result, source, null);
+		buildFlattenedMap(result, source, null, false);
 		return result;
 	}
 
-	private void buildFlattenedMap(Map<String, Object> result, Map<String, Object> source, @Nullable String path) {
+	private void buildFlattenedMap(Map<String, Object> result, Map<String, Object> source, @Nullable String path, boolean numbericIndex) {
 		source.forEach((key, value) -> {
 			if (StringUtils.hasText(path)) {
 				if (key.startsWith("[")) {
+					if (!numbericIndex) {
+						// wrap into bracket
+						key = "[" + key + "]";
+					}
 					key = path + key;
 				}
 				else {
@@ -322,7 +326,7 @@ public abstract class YamlProcessor {
 				// Need a compound key
 				@SuppressWarnings("unchecked")
 				Map<String, Object> map = (Map<String, Object>) value;
-				buildFlattenedMap(result, map, key);
+				buildFlattenedMap(result, map, key, false);
 			}
 			else if (value instanceof Collection) {
 				// Need a compound key
@@ -335,7 +339,7 @@ public abstract class YamlProcessor {
 					int count = 0;
 					for (Object object : collection) {
 						buildFlattenedMap(result, Collections.singletonMap(
-								"[" + (count++) + "]", object), key);
+								"[" + (count++) + "]", object), key, true);
 					}
 				}
 			}
